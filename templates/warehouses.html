@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h2 class="page-title">Warehouses</h2>
+    <p class="muted small">Create, browse, and manage your locations.</p>
+  </div>
+</div>
+
+<div class="split">
+
+  <!-- Left: Warehouse list -->
+  <div class="card">
+    <div class="row wrap" style="justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+      <div class="row wrap" style="gap:12px">
+        <div class="input-wrap with-icon">
+          <span class="input-icon ti ti-search"></span>
+          <input id="whSearch" class="input" placeholder="Search warehouses…" aria-label="Search warehouses">
+        </div>
+      </div>
+      <div class="row gap">
+        <!-- Quick link to add (anchors to the form on the right) -->
+        <a class="btn ghost" href="#add-warehouse"><i class="ti ti-plus"></i> Add</a>
+      </div>
+    </div>
+
+    {% if warehouses|length == 0 %}
+      <div id="whEmpty" class="empty-state" style="margin-top:8px">
+        <div class="empty-icon">🏭</div>
+        <h3>No warehouses yet</h3>
+        <p class="muted">Create your first warehouse using the form on the right.</p>
+      </div>
+    {% else %}
+      <div id="whGrid" class="grid cards wh-cards">
+        {% for w in warehouses %}
+        <a class="wh-card hover" href="{{ url_for('warehouse_home', name=w.name) }}" aria-label="Open warehouse {{ w.name }}">
+          <div class="wh-head">
+            <div class="wh-titles">
+              <div class="wh-name">
+                <i class="ti ti-building-warehouse"></i> {{ w.name }}
+              </div>
+              <div class="wh-meta">
+                <span class="wh-code">Code: <b>{{ w.name }}</b></span>
+              </div>
+            </div>
+            <div class="wh-pin"><i class="ti ti-chevron-right"></i></div>
+          </div>
+
+          <div class="wh-actions">
+            <span class="btn ghost small" style="pointer-events:none">Manage</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+
+      <!-- Empty state shown when filter hides all -->
+      <div id="whEmptyFiltered" class="empty-state" style="display:none;margin-top:8px">
+        <div class="empty-icon">🔎</div>
+        <h3>No results</h3>
+        <p class="muted">Try a different search term.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Add/Delete -->
+  <div class="card" id="add-warehouse">
+    <h3 style="margin-top:0">Add Warehouse</h3>
+    <form method="post" class="stack" autocomplete="off">
+      <input type="hidden" name="action" value="add">
+      <input name="name" placeholder="e.g., A1-B2" required aria-label="Warehouse name">
+      <button class="btn primary"><i class="ti ti-plus"></i> Add</button>
+    </form>
+
+    <div class="vr"></div>
+
+    <h3>Delete Warehouse</h3>
+    <p class="hint">Double confirmation required. This cannot be undone.</p>
+    <form method="post" class="stack" autocomplete="off">
+      <input type="hidden" name="action" value="delete">
+      <input name="name" placeholder="Exact warehouse name" required aria-label="Exact warehouse name">
+      <label class="chk">
+        <input type="checkbox" name="confirm1">
+        Yes, delete it
+      </label>
+      <label class="chk">
+        <input type="checkbox" name="confirm2">
+        I'm sure — remove products file too
+      </label>
+      <button class="btn danger"><i class="ti ti-trash"></i> Delete</button>
+    </form>
+  </div>
+</div>
+
+<!-- Local-only enhancement: client-side search/filter -->
+<script>
+(function(){
+  const search = document.getElementById('whSearch');
+  const grid = document.getElementById('whGrid');
+  const emptyFiltered = document.getElementById('whEmptyFiltered');
+  if (!search || !grid) return;
+
+  const cards = Array.from(grid.querySelectorAll('.wh-card'));
+  function applyFilter(){
+    const q = (search.value || '').trim().toLowerCase();
+    let shown = 0;
+    cards.forEach(card=>{
+      const text = card.innerText.toLowerCase();
+      const match = !q || text.includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) shown++;
+    });
+    emptyFiltered.style.display = shown ? 'none' : '';
+  }
+  search.addEventListener('input', applyFilter);
+  applyFilter();
+})();
+</script>
+{% endblock %}

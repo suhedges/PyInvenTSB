@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h2 class="page-title">{{ warehouse }}</h2>
+    <p class="muted small">Choose what you want to manage for this warehouse.</p>
+  </div>
+  <div class="row">
+    <a class="btn ghost" href="{{ url_for('warehouses') }}"><i class="ti ti-arrow-left"></i> Back to Warehouses</a>
+  </div>
+</div>
+
+<div class="grid three">
+  <a class="wh-card hover" href="{{ url_for('products_page', name=warehouse) }}">
+    <div class="wh-head">
+      <div class="wh-titles">
+        <div class="wh-name">
+          <i class="ti ti-packages"></i> Products
+        </div>
+        <div class="wh-meta">View, filter, edit, and scan barcodes</div>
+      </div>
+      <div class="wh-pin"><i class="ti ti-chevron-right"></i></div>
+    </div>
+  </a>
+
+  <a class="wh-card hover" href="{{ url_for('export_page', name=warehouse) }}">
+    <div class="wh-head">
+      <div class="wh-titles">
+        <div class="wh-name">
+          <i class="ti ti-file-export"></i> Export
+        </div>
+        <div class="wh-meta">All / Under Min / Over Max / Optimal</div>
+      </div>
+      <div class="wh-pin"><i class="ti ti-chevron-right"></i></div>
+    </div>
+  </a>
+
+  <a class="wh-card hover" href="{{ url_for('import_page', name=warehouse) }}">
+    <div class="wh-head">
+      <div class="wh-titles">
+        <div class="wh-name">
+          <i class="ti ti-file-import"></i> Import
+        </div>
+        <div class="wh-meta">CSV import with flexible columns</div>
+      </div>
+      <div class="wh-pin"><i class="ti ti-chevron-right"></i></div>
+    </div>
+  </a>
+</div>
+
+{% endblock %}

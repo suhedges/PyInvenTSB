@@ -19,6 +19,8 @@ DATA_DIR.mkdir(exist_ok=True)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-" + os.urandom(16).hex())
 
+data_lock = threading.Lock()
+
 # ---- Config you can tweak quickly ----
 REPO_OWNER = "suhedges"
 REPO_NAME = "InventSB"
@@ -41,27 +43,32 @@ def _products_path(wh):
     return DATA_DIR / f"products_{safe}.json"
 
 def load_warehouses():
-    try:
-        return json.loads(WAREHOUSES_FILE.read_text(encoding="utf-8")).get("warehouses", [])
-    except Exception:
-        return []
+    with data_lock:
+        try:
+            return json.loads(WAREHOUSES_FILE.read_text(encoding="utf-8")).get("warehouses", [])
+        except Exception:
+            return []
 
 def save_warehouses(warehouses):
-    WAREHOUSES_FILE.write_text(json.dumps({"warehouses": warehouses}, indent=2), encoding="utf-8")
+    with data_lock:
+        WAREHOUSES_FILE.write_text(json.dumps({"warehouses": warehouses}, indent=2), encoding="utf-8")
     schedule_sync(WAREHOUSES_FILE)
 
 def load_products(warehouse):
     p = _products_path(warehouse)
     if not p.exists():
-        p.write_text(json.dumps({"products": []}, indent=2), encoding="utf-8")
-    try:
-        return json.loads(p.read_text(encoding="utf-8")).get("products", [])
-    except Exception:
-        return []
+        with data_lock:
+            p.write_text(json.dumps({"products": []}, indent=2), encoding="utf-8")
+    with data_lock:
+        try:
+            return json.loads(p.read_text(encoding="utf-8")).get("products", [])
+        except Exception:
+            return []
 
 def save_products(warehouse, products):
     p = _products_path(warehouse)
-    p.write_text(json.dumps({"products": products}, indent=2), encoding="utf-8")
+    with data_lock:
+        p.write_text(json.dumps({"products": products}, indent=2), encoding="utf-8")
     schedule_sync(p)
 
 # ---------- GitHub Sync (optional, best-effort/offline-friendly) ----------
@@ -126,6 +133,10 @@ def login():
         allowed = load_users()
         if username in allowed:
             session["user"] = username
+            def pull():
+                with data_lock:
+                    github.pull_all(DATA_DIR)
+            threading.Thread(target=pull, daemon=True).start()
             return redirect(url_for("warehouses"))
         flash("Unauthorized user.", "error")
         return redirect(url_for("login"))
@@ -135,6 +146,24 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+@app.route("/sync")
+def sync_now():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    def push_all():
+        with data_lock:
+            files = [p for p in DATA_DIR.glob("*") if p.is_file()]
+        for f in files:
+            try:
+                github.push_file(f)
+            except Exception as e:
+                print("[SYNC] push failed:", e)
+
+    threading.Thread(target=push_all, daemon=True).start()
+    flash("Sync started.", "ok")
+    return redirect(request.referrer or url_for("warehouses"))
 
 @app.route("/warehouses", methods=["GET", "POST"])
 def warehouses():

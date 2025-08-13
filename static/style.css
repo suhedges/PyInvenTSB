@@ -74,6 +74,9 @@ input, select{
   transition:border-color .15s ease, box-shadow .15s ease;
   min-height:var(--tap);
 }
+input[type=checkbox]{
+  min-width:auto;min-height:auto;width:16px;height:16px;padding:0;
+}
 input:focus, select:focus{border-color:rgba(78,140,255,.65);box-shadow:0 0 0 3px rgba(78,140,255,.18)}
 .input{background:#111428;border:1px solid var(--border);color:var(--txt);padding:10px;border-radius:10px;min-width:220px;min-height:var(--tap)}
 .input::placeholder{color:#6c7390}

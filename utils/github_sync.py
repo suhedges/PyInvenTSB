@@ -72,3 +72,29 @@ class GithubSync:
         if r.status_code not in (200, 201):
             # print for debugging
             print(f"[SYNC] {remote_path} -> {r.status_code}: {r.text[:200]}")
+
+    def pull_all(self, local_dir: Path):
+        """Download all files from the remote path prefix into ``local_dir``."""
+        headers = self._gh_headers()
+        if not headers:
+            return  # offline / not configured
+
+        base = f"https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/contents"
+        url = f"{base}/{self.path_prefix}" if self.path_prefix else base
+
+        try:
+            r = requests.get(url, headers=headers, timeout=20)
+            if r.status_code != 200:
+                return
+            for item in r.json():
+                if item.get("type") != "file":
+                    continue
+                name = item.get("name")
+                download_url = item.get("download_url")
+                if not name or not download_url:
+                    continue
+                resp = requests.get(download_url, headers=headers, timeout=20)
+                if resp.status_code == 200:
+                    (local_dir / name).write_bytes(resp.content)
+        except Exception as e:
+            print("[SYNC] pull failed:", e)
